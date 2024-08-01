@@ -1,0 +1,11 @@
+{
+  "python.pythonPath": "${workspaceFolder}/venv/bin/python",
+  "python.venvPath": "${workspaceFolder}/venv",
+  "python.terminal.activateEnvironment": true,
+  "terminal.integrated.env.windows": {
+    "PYTHONPATH": "${workspaceFolder}/venv/Scripts/python.exe"
+  },
+  "terminal.integrated.env.osx": {
+    "PYTHONPATH": "${workspaceFolder}/venv/bin/python"
+  }
+}
