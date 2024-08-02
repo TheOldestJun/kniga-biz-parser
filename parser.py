@@ -26,25 +26,41 @@ def make_request(url):
     random_sleep()
     return response
 
+def parse_comments(url: str) -> list[dict]:
+    comments_url = URL_TO_PARSE + url + '#usercomments'
+    comments = []
+    response = make_request(comments_url)
+    tree = html.fromstring(response.text)
+    book_name = tree.xpath('//div[@class="row onebook"]/div/h1/text()')[0].strip()
+    comments_data = tree.xpath('//div[@class="panel panel-info"]')
+    for comment_data in comments_data:
+        name = comment_data.xpath('.//div[@class="panel-heading"]/text()')[0].strip()
+        date = comment_data.xpath('.//div[@class="panel-heading"]/span/text()')[0].strip()
+        text = comment_data.xpath('.//div[@class="panel-body"]/p/text()')[0].strip()
+        comments.append({'name': name, 'date': date, 'text': text})
+    all_comments = {'book': book_name, 'comments': comments}
+    return all_comments
 
-def parse_categories(url):
+def parse_categories(url: str) -> list[dict]:
     category_url = URL_TO_PARSE + url
     response = make_request(category_url)
     tree = html.fromstring(response.text)
     books = tree.xpath('//div[@class="gallery-grid"]//div[@class="gallery-text"]/div/a/@href')
-    print(books)
+    comments = []
+    for book in books:
+        comments.append(parse_comments(book))
+    return comments
 
 def main():
     print(f"We'll gon'na parse this site: {URL_TO_PARSE}")
-    data = {} # gather all data for JSON
     url = URL_TO_PARSE
     response = make_request(url)
     tree = html.fromstring(response.text)
     categories = tree.xpath('//div[@class="collapse navbar-collapse menu-navbar"]//div[@class="menu-grids"]/div/a/@href')
-    for category in categories:
-        parse_categories(category)
-        print()
-
+    titles = tree.xpath('//div[@class="collapse navbar-collapse menu-navbar"]//div[@class="menu-grids"]/div/a/text()')
+    print(titles[23])
+    info = parse_categories(categories[23])# Саморозвиток
+    print(info)
 
 if __name__ == '__main__':
     main()
