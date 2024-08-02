@@ -13,6 +13,11 @@ user_agents = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59',
     'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1'
 ]
+
+def save_to_json(data: list[dict], filename: str) -> None:
+    with open(filename, 'w', encoding='utf-8') as file:
+        json.dump(data, file, ensure_ascii=False, indent=4)
+
 # Bot detection prevention
 def get_random_user_agent() -> str:
     return random.choice(user_agents)
@@ -60,7 +65,8 @@ def main():
     titles = tree.xpath('//div[@class="collapse navbar-collapse menu-navbar"]//div[@class="menu-grids"]/div/a/text()')
     print(titles[23])
     info = parse_categories(categories[23])# Саморозвиток
-    print(info)
-
+    for item in info:
+        save_to_json(item['comments'], f'./reviews/{item["book"]}.json')
+    print('Done!')
 if __name__ == '__main__':
     main()
