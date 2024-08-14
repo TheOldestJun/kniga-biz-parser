@@ -18,14 +18,17 @@ def save_to_json(data: list[dict], filename: str) -> None:
     with open(filename, 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=4)
 
+def replace_symbols(text: str) -> str:
+    return text.replace('\n', '').replace('\r', '').replace(':', '').replace('"', '')
+
 # Bot detection prevention
 def get_random_user_agent() -> str:
     return random.choice(user_agents)
-def random_sleep():
+def random_sleep()-> None:
     time.sleep(random.randint(1, 3))
 
 # Safe request
-def make_request(url):
+def make_request(url: str) -> requests.Response:
     headers = {'User-Agent': get_random_user_agent()}
     response = requests.get(url, headers=headers)
     random_sleep()
@@ -36,7 +39,12 @@ def parse_comments(url: str) -> list[dict]:
     comments = []
     response = make_request(comments_url)
     tree = html.fromstring(response.text)
-    book_name = tree.xpath('//div[@class="row onebook"]/div/h1/text()')[0].strip()
+    book_name = replace_symbols(tree.xpath('//div[@class="row onebook"]/div/h1/text()')[0].strip())
+    print(book_name)
+    """    
+    raw_book_name = repr(book_name)
+    print(raw_book_name)
+    """
     comments_data = tree.xpath('//div[@class="panel panel-info"]')
     for comment_data in comments_data:
         name = comment_data.xpath('.//div[@class="panel-heading"]/text()')[0].strip()
@@ -46,25 +54,40 @@ def parse_comments(url: str) -> list[dict]:
     all_comments = {'book': book_name, 'comments': comments}
     return all_comments
 
+def generate_pages_urls(url: str, last_page: int) -> list[str]:
+    full_url = URL_TO_PARSE + url
+    result = []
+    result.append(full_url)
+    for i in range(2, last_page + 1):
+        result.append(full_url + f'/page{i}?sort=popular-desc&filter=stock,time,predorder') 
+    return result
+
 def parse_categories(url: str) -> list[dict]:
     category_url = URL_TO_PARSE + url
-    response = make_request(category_url)
+    response = make_request(category_url) # make request for pagination
     tree = html.fromstring(response.text)
-    books = tree.xpath('//div[@class="gallery-grid"]//div[@class="gallery-text"]/div/a/@href')
+    pages = tree.xpath('//ul[@class="pagination"]/li/a/text()')
+    last_page = int(pages[-1]) # get last page number
+    pages_urls = generate_pages_urls(url, last_page)
     comments = []
-    for book in books:
-        comments.append(parse_comments(book))
+    for page in pages_urls[0:2]: # take a slice of the first 2 pages for example
+        response = make_request(page)
+        tree = html.fromstring(response.text)
+        books = tree.xpath('//div[@class="gallery-grid"]//div[@class="gallery-text"]/div/a/@href')
+        for book in books:
+            comments.append(parse_comments(book))
     return comments
 
 def main():
-    print(f"We'll gon'na parse this site: {URL_TO_PARSE}")
+    print(f"Parsing site: {URL_TO_PARSE}")
     url = URL_TO_PARSE
     response = make_request(url)
     tree = html.fromstring(response.text)
     categories = tree.xpath('//div[@class="collapse navbar-collapse menu-navbar"]//div[@class="menu-grids"]/div/a/@href')
     titles = tree.xpath('//div[@class="collapse navbar-collapse menu-navbar"]//div[@class="menu-grids"]/div/a/text()')
-    print(titles[23])
-    info = parse_categories(categories[23])# Саморозвиток
+    print(titles[23]) # just to show what category we are parsing
+    info = parse_categories(categories[23])# taken one category for example: Саморозвиток
+    # we can add for..in loop to parse all data from site
     for item in info:
         save_to_json(item['comments'], f'./reviews/{item["book"]}.json')
     print('Done!')
