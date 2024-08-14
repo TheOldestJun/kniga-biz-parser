@@ -34,6 +34,10 @@ def make_request(url: str) -> requests.Response:
     random_sleep()
     return response
 
+def get_comment_text(object: html.HtmlElement) -> str:
+    # TODO: here we will get text from various variants of comment
+    pass
+
 def parse_comments(url: str) -> list[dict]:
     comments_url = URL_TO_PARSE + url + '#usercomments'
     comments = []
@@ -41,15 +45,19 @@ def parse_comments(url: str) -> list[dict]:
     tree = html.fromstring(response.text)
     book_name = replace_symbols(tree.xpath('//div[@class="row onebook"]/div/h1/text()')[0].strip())
     print(book_name)
-    """    
-    raw_book_name = repr(book_name)
-    print(raw_book_name)
-    """
     comments_data = tree.xpath('//div[@class="panel panel-info"]')
+    if not comments_data:
+        return {'book': book_name, 'comments': []}
     for comment_data in comments_data:
         name = comment_data.xpath('.//div[@class="panel-heading"]/text()')[0].strip()
         date = comment_data.xpath('.//div[@class="panel-heading"]/span/text()')[0].strip()
-        text = comment_data.xpath('.//div[@class="panel-body"]/p/text()')[0].strip()
+        if comment_data.xpath('.//div[@class="panel-body"]/text()')[0].strip() != "":
+            text = comment_data.xpath('.//div[@class="panel-body"]/text()')[0].strip()  
+        elif comment_data.xpath('.//div[@class="panel-body"]/p/text()')[0].strip() != "":
+            # TODO: create comment text for list of spans
+            text = comment_data.xpath('.//div[@class="panel-body"]/p/span/text()').strip()
+        else:
+            text = comment_data.xpath('.//div[@class="panel-body"]/p/text()')[0].strip()
         comments.append({'name': name, 'date': date, 'text': text})
     all_comments = {'book': book_name, 'comments': comments}
     return all_comments
@@ -70,7 +78,7 @@ def parse_categories(url: str) -> list[dict]:
     last_page = int(pages[-1]) # get last page number
     pages_urls = generate_pages_urls(url, last_page)
     comments = []
-    for page in pages_urls[0:2]: # take a slice of the first 2 pages for example
+    for page in pages_urls[2:5]: # take a slice of the first 2 pages for example
         response = make_request(page)
         tree = html.fromstring(response.text)
         books = tree.xpath('//div[@class="gallery-grid"]//div[@class="gallery-text"]/div/a/@href')
